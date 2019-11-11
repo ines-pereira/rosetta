@@ -29,7 +29,9 @@
 
 (define (simulation-path)
   (or (document-path)
-      (make-temporary-file)))
+      (make-temporary-file "Building~A.ext"
+                           #f
+                           (make-temporary-file "RadianceAnalysis~A" 'directory))))
 
 (define analysis-nodes-height : (Parameterof Real) (make-parameter 0.5))
 (define analysis-nodes-separation-u : (Parameterof (Option Real)) (make-parameter #f))
