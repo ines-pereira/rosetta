@@ -50,25 +50,22 @@
 (provide manual-unlock manual-lock)
 
 (define (exclusive-os-path)
-  (build-path (find-system-path 'temp-dir) "rhinolock"))
-
-(define lock-port #f)
+  (build-path (find-system-path 'temp-dir) "objlock"))
 
 (define (manual-lock)
   (let ((path (exclusive-os-path)))
     (let loop ((n 100))
       (if (zero? n)
           (error "Could not aquire lock")
-          (let ()
-            (set! lock-port (open-output-file path #:mode 'text #:exists 'truncate))
-            (if (port-try-file-lock? lock-port 'exclusive)
-                #t
-                (begin (println "Waiting")
-                       (sleep 1)
-                       (loop (- n 1)))))))))
+          (with-handlers ([exn:fail:filesystem:exists?
+                           (lambda (x)
+                             (println "Waiting")
+                             (sleep 1)
+                             (loop (- n 1)))])
+            (close-output-port (open-output-file path #:mode 'text #:exists 'error)))))))
 
 (define (manual-unlock)
-  (port-file-unlock lock-port))
+  (delete-file (exclusive-os-path)))
 
 
 ;;Export materials file
