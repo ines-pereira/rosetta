@@ -1374,6 +1374,7 @@ END
           (write-daysim-daylighting-results port path ellpath)
           (write-daysim-dynamic-simulation port emppath occpath)
           (write-daysim-sensors port sensors)))
+      (sleep 2)
       (manual-unlock)
       (radiance-command (format "radfiles2daysim \"~A\" -m -g" heapath))
       (radiance-command (format "gen_dc \"~A\" -dif" heapath))
