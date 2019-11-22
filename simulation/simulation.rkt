@@ -46,6 +46,31 @@
   (or (analysis-nodes-separation-v)
       (analysis-nodes-separation)))
 
+;;
+(provide manual-unlock manual-lock)
+
+(define (exclusive-os-path)
+  (build-path (find-system-path 'temp-dir) "rhinolock"))
+
+(define lock-port #f)
+
+(define (manual-lock)
+  (let ((path (exclusive-os-path)))
+    (let loop ((n 100))
+      (if (zero? n)
+          (error "Could not aquire lock")
+          (let ()
+            (set! lock-port (open-output-file path #:mode 'text #:exists 'truncate))
+            (if (port-try-file-lock? lock-port 'exclusive)
+                #t
+                (begin (println "Waiting")
+                       (sleep 1)
+                       (loop (- n 1)))))))))
+
+(define (manual-unlock)
+  (port-file-unlock lock-port))
+
+
 ;;Export materials file
 
 ;;Default materials used for specific building elements
@@ -176,6 +201,7 @@ number of points - 1 (array bound)         > 3
 
 (define (call-with-daysim-simulation path f)
   (parameterize ([radiance-surfaces (list)])
+    (manual-lock)
     (f)
     (export-to-daysim (or path (make-temporary-file)))
     #;(let-values ([(dir name dir?) (split-path path)])
@@ -947,6 +973,7 @@ END
           ;;Inject ground plane
           (let ((shapes (cons (create-ground-plane shapes) shapes)))
             (export-obj objpath shapes write-precision polygon-density))
+          ;(manual-unlock)
           ;;Write the map file
           (call-with-output-file #:mode 'text #:exists 'replace
             mappath
@@ -1350,6 +1377,7 @@ END
           (write-daysim-daylighting-results port path ellpath)
           (write-daysim-dynamic-simulation port emppath occpath)
           (write-daysim-sensors port sensors)))
+      (manual-unlock)
       (radiance-command (format "radfiles2daysim \"~A\" -m -g" heapath))
       (radiance-command (format "gen_dc \"~A\" -dif" heapath))
       (radiance-command (format "gen_dc \"~A\" -dir" heapath))
